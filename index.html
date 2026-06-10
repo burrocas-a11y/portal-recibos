@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Portal de Recibos - Sol Victoria</title>
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#F5F3EE;--surface:#FFF;--surface2:#EFEDE8;--border:#DDD9D0;--text:#1A1916;--text2:#6B6760;--text3:#9E9B95;--accent:#1A1916;--accent-fg:#F5F3EE;--green:#1D6A45;--green-bg:#D8F3DC;--red:#9B2226;--red-bg:#FFE8E8;--blue:#1B4F72;--blue-bg:#D6EAF8;--amber:#7A4F00;--amber-bg:#FEF3C7;--r:10px;--rs:6px}
+html,body{height:100%;background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);font-size:15px;line-height:1.6}
+.screen{display:none;min-height:100vh;flex-direction:column}.screen.active{display:flex}
+#screen-login,#screen-registro{align-items:center;justify-content:center;padding:2rem}
+.login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2.5rem 2rem;width:100%;max-width:430px}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:2rem}
+.brand-icon{width:34px;height:34px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.brand-icon svg,.h-icon svg{fill:var(--accent-fg)}
+.brand-name{font-size:16px;font-weight:600;letter-spacing:-.3px}
+.login-title{font-size:22px;font-weight:600;letter-spacing:-.5px;margin-bottom:4px}
+.login-sub{font-size:14px;color:var(--text2);margin-bottom:1.75rem}
+.field{margin-bottom:1rem}.field label{display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:5px}
+.field input,.field select{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--rs);font-size:15px;font-family:inherit;background:var(--bg);color:var(--text);outline:none;transition:border-color .15s}
+.field input:focus,.field select:focus{border-color:var(--accent)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{padding:10px 20px;border:none;border-radius:var(--rs);font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--accent);color:var(--accent-fg);width:100%;justify-content:center}.btn-primary:hover{opacity:.85}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border)}.btn-outline:hover{background:var(--surface2)}
+.btn-ghost{background:none;border:none;color:var(--text2);padding:6px 10px;font-size:13px;cursor:pointer;font-family:inherit;border-radius:var(--rs)}.btn-ghost:hover{color:var(--text);background:var(--surface2)}
+.btn-sm{padding:7px 14px;font-size:13px;width:auto}
+.err{background:var(--red-bg);color:var(--red);font-size:13px;padding:10px 14px;border-radius:var(--rs);margin-top:1rem;display:none}
+.toggle-row{text-align:center;margin-top:1rem;font-size:13px;color:var(--text2)}.toggle-row a{color:var(--text);font-weight:500;cursor:pointer;text-decoration:underline}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 1.5rem;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.header-left{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px}
+.h-icon{width:26px;height:26px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center}
+.h-icon svg{width:13px;height:13px}
+.header-right{display:flex;align-items:center;gap:8px}
+.user-pill{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px 4px 8px;font-size:13px;display:flex;align-items:center;gap:6px;max-width:220px;overflow:hidden}
+.user-pill span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.online-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+.main{flex:1;padding:2rem 1.5rem;max-width:1000px;margin:0 auto;width:100%}
+.page-title{font-size:23px;font-weight:600;letter-spacing:-.5px;margin-bottom:2px}
+.page-sub{font-size:14px;color:var(--text2);margin-bottom:1.75rem}
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:1.75rem;overflow-x:auto}
+.tab{padding:9px 18px;font-size:14px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-1px;font-family:inherit;white-space:nowrap}.tab.active{color:var(--text);border-bottom-color:var(--text)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem 1.5rem;margin-bottom:1rem}
+.card-title{font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:1rem}
+.upload-zone{border:2px dashed var(--border);border-radius:var(--r);padding:2.25rem 2rem;text-align:center;cursor:pointer;background:var(--bg);transition:all .15s}.upload-zone:hover,.upload-zone.dv{border-color:var(--accent);background:var(--surface2)}
+.upload-zone svg{width:38px;height:38px;stroke:var(--text3);margin-bottom:10px}
+.upload-title{font-size:15px;font-weight:500;margin-bottom:3px}.upload-sub{font-size:13px;color:var(--text2)}
+.prog-wrap{margin-top:1rem;display:none}.prog-label{font-size:13px;color:var(--text2);margin-bottom:7px;display:flex;justify-content:space-between}
+.prog-bar{height:4px;background:var(--surface2);border-radius:99px;overflow:hidden}.prog-fill{height:100%;background:var(--accent);border-radius:99px;transition:width .2s;width:0}
+.info-banner{background:var(--blue-bg);color:var(--blue);border-radius:var(--rs);padding:9px 14px;font-size:13px;margin-bottom:1rem}
+.warn-banner{background:var(--amber-bg);color:var(--amber);border-radius:var(--rs);padding:9px 14px;font-size:13px;margin-bottom:1rem}
+.emp-config-header,.emp-config-row{display:grid;grid-template-columns:100px 1fr 130px 110px 110px 80px 80px;gap:8px;align-items:center;margin-bottom:6px}
+.emp-config-header span{font-size:12px;font-weight:500;color:var(--text2)}
+.emp-config-row input,.emp-config-row select{padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13px;font-family:inherit;background:var(--bg);color:var(--text);outline:none;width:100%}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:3px 9px;border-radius:99px;font-weight:500;white-space:nowrap}
+.bg-green{background:var(--green-bg);color:var(--green)}.bg-gray{background:var(--surface2);color:var(--text2)}.bg-amber{background:var(--amber-bg);color:var(--amber)}.bg-red{background:var(--red-bg);color:var(--red)}.bg-blue{background:var(--blue-bg);color:var(--blue)}
+.result-row{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg);border-radius:var(--rs);border:1px solid var(--border);margin-bottom:7px}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--blue-bg);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;font-family:'DM Mono',monospace}
+.result-info{flex:1}.result-name{font-size:14px;font-weight:500}.result-meta{font-size:12px;color:var(--text2)}
+.recibo-item{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:var(--bg);border-radius:var(--rs);border:1px solid var(--border);margin-bottom:8px;gap:12px;flex-wrap:wrap}
+.recibo-left{display:flex;align-items:center;gap:12px}
+.pdf-icon{width:36px;height:36px;background:var(--red-bg);border-radius:var(--rs);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:700;color:var(--red)}
+.recibo-titulo{font-size:14px;font-weight:500}.recibo-meta{font-size:12px;color:var(--text2)}
+.btn-dl{padding:7px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;color:var(--text);font-family:inherit;transition:all .12s;white-space:nowrap}
+.btn-dl:hover{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.accesos-table{width:100%;border-collapse:collapse;font-size:13px}
+.accesos-table th{text-align:left;padding:8px 12px;font-size:12px;font-weight:500;color:var(--text2);border-bottom:1px solid var(--border);background:var(--surface)}
+.accesos-table td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.accesos-table tbody tr:hover td{background:var(--bg)}
+.mono{font-family:'DM Mono',monospace;font-size:12px}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.5rem}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1.25rem}
+.stat-label{font-size:12px;color:var(--text2);margin-bottom:4px}.stat-value{font-size:24px;font-weight:600;letter-spacing:-.5px}
+.empty{text-align:center;padding:2.5rem 2rem;color:var(--text2)}.empty-title{font-size:15px;font-weight:500;color:var(--text);margin-bottom:3px}.empty-sub{font-size:13px}
+.notif{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--text);color:var(--accent-fg);padding:11px 18px;border-radius:var(--r);font-size:14px;transform:translateY(16px);opacity:0;transition:all .22s;pointer-events:none;z-index:200;max-width:360px}
+.notif.show{transform:translateY(0);opacity:1}
+.loading{display:flex;align-items:center;justify-content:center;padding:3rem;gap:10px;color:var(--text2);font-size:14px}
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:700px){.main{padding:1.25rem 1rem}.emp-config-header,.emp-config-row{grid-template-columns:1fr 1fr}.emp-config-header{display:none}.accesos-table{min-width:700px}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="screen-login" class="screen active">
+  <div class="login-box">
+    <div class="brand">
+      <div class="brand-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8" style="fill:none;stroke:#F5F3EE;stroke-width:2"/></svg></div>
+      <span class="brand-name">Portal de Recibos</span>
+    </div>
+    <h1 class="login-title" id="login-title">Bienvenido</h1>
+    <p class="login-sub" id="login-sub">Ingresá con tu DNI y contraseña</p>
+    <div class="field"><label id="lbl-dni">DNI</label><input type="text" id="inp-dni" placeholder="12345678" maxlength="20"/></div>
+    <div class="field"><label>Contraseña</label><input type="password" id="inp-pass" placeholder="••••••••"/></div>
+    <button class="btn btn-primary" onclick="handleLogin()">Ingresar</button>
+    <div class="err" id="login-err"></div>
+    <div class="toggle-row"><span id="tog-text">¿Sos de RRHH? </span><a onclick="toggleMode()" id="tog-link">Acceso RRHH</a></div>
+    <div class="toggle-row"><span>¿Primer ingreso? </span><a onclick="showScreen('registro')">Registrarme</a></div>
+  </div>
+</div>
+
+<!-- REGISTRO -->
+<div id="screen-registro" class="screen">
+  <div class="login-box">
+    <div class="brand">
+      <div class="brand-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8" style="fill:none;stroke:#F5F3EE;stroke-width:2"/></svg></div>
+      <span class="brand-name">Portal de Recibos</span>
+    </div>
+    <h1 class="login-title">Primer ingreso</h1>
+    <p class="login-sub">Verificá tu identidad y creá tu contraseña.</p>
+    <div class="field"><label>CUIL (sin guiones)</label><input id="reg-cuil" placeholder="20123456789" inputmode="numeric" maxlength="11"/></div>
+    <div class="field"><label>Fecha de nacimiento</label><input id="reg-nac" type="date"/></div>
+    <div class="field"><label>Contraseña nueva</label><input id="reg-pass" type="password" placeholder="Mínimo 4 caracteres"/></div>
+    <div class="field"><label>Repetir contraseña</label><input id="reg-pass2" type="password"/></div>
+    <button class="btn btn-primary" onclick="registrarEmpleado()">Crear mi acceso</button>
+    <div class="err" id="reg-err"></div>
+    <div class="toggle-row"><a onclick="showScreen('login')">← Volver al ingreso</a></div>
+  </div>
+</div>
+
+<!-- EMPLEADO -->
+<div id="screen-emp" class="screen">
+  <div class="header">
+    <div class="header-left">
+      <div class="h-icon"><svg width="13" height="13" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg></div>
+      Portal de Recibos
+    </div>
+    <div class="header-right">
+      <div class="user-pill"><div class="online-dot"></div><span id="hdr-nombre">—</span></div>
+      <button class="btn-ghost" onclick="logout()">Salir</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="page-title">Mis recibos</div>
+    <p class="page-sub" id="emp-sub"></p>
+    <div id="recibos-list"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+  </div>
+</div>
+
+<!-- RRHH -->
+<div id="screen-rrhh" class="screen">
+  <div class="header">
+    <div class="header-left">
+      <div class="h-icon"><svg width="13" height="13" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg></div>
+      Portal de Recibos
+    </div>
+    <div class="header-right">
+      <div class="user-pill"><div class="online-dot"></div><span>RRHH</span></div>
+      <button class="btn-ghost" onclick="logout()">Salir</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="page-title">Panel RRHH</div>
+    <p class="page-sub">Gestioná recibos, empleados y accesos.</p>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('subir',this)">Subir recibos</button>
+      <button class="tab" onclick="switchTab('excel',this)">Importar empleados</button>
+      <button class="tab" onclick="switchTab('accesos',this)">Accesos</button>
+      <button class="tab" onclick="switchTab('empleados',this)">Empleados</button>
+    </div>
+
+    <!-- TAB SUBIR -->
+    <div id="tab-subir">
+      <div class="card">
+        <div class="card-title">Carga masiva automática con OCR</div>
+        <div class="info-banner">Subí el PDF masivo. El sistema <strong>recorta la mitad izquierda</strong> de cada página (con la firma del empleador), lee el nombre y CUIL con OCR, y guarda cada recibo asociado al empleado automáticamente.</div>
+        <div class="warn-banner">⚠ El OCR puede tardar unos segundos por página. Si el PDF tiene muchas páginas, esperá sin cerrar la ventana.</div>
+        <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-inp').click()" ondragover="onDV(event)" ondragleave="onDL(event)" ondrop="onDrop(event)">
+          <svg fill="none" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+          <p class="upload-title">Arrastrá el PDF masivo acá o hacé clic</p>
+          <p class="upload-sub" id="upload-fn">Solo archivos PDF</p>
+        </div>
+        <input type="file" id="file-inp" accept=".pdf" style="display:none" onchange="onFileSelect(event)"/>
+        <div class="prog-wrap" id="prog-wrap">
+          <div class="prog-label"><span id="prog-txt">Procesando...</span><span id="prog-pct">0%</span></div>
+          <div class="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
+        </div>
+      </div>
+      <div class="card" id="card-result" style="display:none">
+        <div class="card-title">Resultado del procesamiento</div>
+        <div id="result-list"></div>
+      </div>
+    </div>
+
+    <!-- TAB EXCEL -->
+    <div id="tab-excel" style="display:none">
+      <div class="card">
+        <div class="card-title">Importar empleados desde Excel</div>
+        <div class="info-banner">Subí un Excel con columnas <strong>Nombre</strong>, <strong>Apellido</strong> y <strong>DNI</strong> (en cualquier orden). El sistema crea o actualiza cada empleado. Al subir el PDF masivo, los nombres se toman de acá en vez del OCR.</div>
+        <div class="upload-zone" id="excel-zone" onclick="document.getElementById('excel-inp').click()" ondragover="onDV2(event)" ondragleave="onDL2(event)" ondrop="onDrop2(event)">
+          <svg fill="none" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+          <p class="upload-title">Arrastrá el Excel acá o hacé clic</p>
+          <p class="upload-sub" id="excel-fn">Archivos .xlsx o .xls</p>
+        </div>
+        <input type="file" id="excel-inp" accept=".xlsx,.xls" style="display:none" onchange="onExcelSelect(event)"/>
+        <div class="prog-wrap" id="excel-prog-wrap">
+          <div class="prog-label"><span id="excel-prog-txt">Procesando...</span><span id="excel-prog-pct">0%</span></div>
+          <div class="prog-bar"><div class="prog-fill" id="excel-prog-fill"></div></div>
+        </div>
+      </div>
+      <div class="card" id="excel-result" style="display:none">
+        <div class="card-title">Resultado de la importación</div>
+        <div id="excel-result-list"></div>
+      </div>
+    </div>
+
+    <!-- TAB ACCESOS -->
+    <div id="tab-accesos" style="display:none">
+      <div class="stats-grid" id="stats-grid"></div>
+      <div class="card">
+        <div class="card-title">Estado por empleado y recibo</div>
+        <div style="overflow-x:auto"><div id="accesos-content"></div></div>
+      </div>
+    </div>
+
+    <!-- TAB EMPLEADOS -->
+    <div id="tab-empleados" style="display:none">
+      <div class="card">
+        <div class="card-title">Lista de empleados</div>
+        <div class="info-banner">Los empleados se crean automáticamente al subir el PDF. También podés agregarlos manualmente acá.</div>
+        <div class="emp-config-header">
+          <span>DNI</span><span>Nombre</span><span>CUIL</span><span>Celular</span><span>Contraseña</span><span>Estado</span><span>Acciones</span>
+        </div>
+        <div id="emp-config-list"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+          <button class="btn btn-outline btn-sm" onclick="addEmpRow()">+ Agregar manual</button>
+          <button class="btn btn-primary btn-sm" onclick="saveEmps()">Guardar cambios</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="notif" id="notif"></div>
+
+<script>
+// ══════════════════════════════════════════════
+//  CONFIGURACIÓN — Completar con datos Supabase
+// ══════════════════════════════════════════════
+const SUPABASE_URL  = 'https://yfxytfkdnbvsbpnjjpht.supabase.co'
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmeHl0ZmtkbmJ2c2JwbmpqcGh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA5MzIsImV4cCI6MjA5NjE0NjkzMn0.Ah4ZLKjgHl-QcrzPD_kGV9wYjS35oqTjOd4kiV90THA'  // pegar la legacy anon key
+const SUPABASE_SERVICE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmeHl0ZmtkbmJ2c2JwbmpqcGh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU3MDkzMiwiZXhwIjoyMDk2MTQ2OTMyfQ.1_rsc7JqaNFJ8u4UqsoAUh9m_gv0U3PqKx2dcv3ZI2I'
+const RRHH_USER = 'admin'
+const RRHH_PASS = 'rrhh2025'
+// ══════════════════════════════════════════════
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON)
+
+let loginMode = 'emp'
+let currentUser = null
+
+// ─── INIT ───
+window.onload = async () => {
+  const s = sessionStorage.getItem('portal_sess')
+  if (s) await restoreSession(JSON.parse(s))
+}
+
+// ─── LOGIN ───
+function toggleMode() {
+  loginMode = loginMode === 'emp' ? 'rrhh' : 'emp'
+  const rrhh = loginMode === 'rrhh'
+  document.getElementById('login-title').textContent = rrhh ? 'Acceso RRHH' : 'Bienvenido'
+  document.getElementById('login-sub').textContent = rrhh ? 'Panel de Recursos Humanos' : 'Ingresá con tu DNI y contraseña'
+  document.getElementById('tog-text').textContent = rrhh ? '¿Sos empleado? ' : '¿Sos de RRHH? '
+  document.getElementById('tog-link').textContent = rrhh ? 'Acceso empleados' : 'Acceso RRHH'
+  document.getElementById('lbl-dni').textContent = rrhh ? 'Usuario' : 'DNI'
+  document.getElementById('inp-dni').placeholder = rrhh ? 'admin' : '12345678'
+  document.getElementById('login-err').style.display = 'none'
+}
+
+async function handleLogin() {
+  const dni  = document.getElementById('inp-dni').value.trim()
+  const pass = document.getElementById('inp-pass').value
+  document.getElementById('login-err').style.display = 'none'
+  if (!dni || !pass) { showErr('login-err', 'Completá usuario y contraseña.'); return }
+
+  if (loginMode === 'rrhh') {
+    if (dni === RRHH_USER && pass === RRHH_PASS) {
+      currentUser = { type: 'rrhh' }
+      sessionStorage.setItem('portal_sess', JSON.stringify({ type: 'rrhh' }))
+      showScreen('rrhh'); renderEmpConfig()
+    } else showErr('login-err', 'Credenciales incorrectas.')
+    return
+  }
+
+  // Empleado: buscar en Supabase
+  const { data: emp, error } = await sb.from('empleados').select('*').eq('dni', soloNum(dni)).eq('activo', true).maybeSingle()
+  if (error || !emp) { showErr('login-err', 'DNI no encontrado.'); return }
+  if (emp.password !== pass) { showErr('login-err', 'Contraseña incorrecta.'); return }
+
+  currentUser = { type: 'emp', ...emp }
+  sessionStorage.setItem('portal_sess', JSON.stringify({ type: 'emp', id: emp.id }))
+  await registrarAcceso(emp.id, 'login', null, null)
+  showEmpScreen(emp)
+}
+
+document.getElementById('inp-pass').addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin() })
+
+async function restoreSession(u) {
+  if (u.type === 'rrhh') { currentUser = { type: 'rrhh' }; showScreen('rrhh'); renderEmpConfig(); return }
+  const { data: emp } = await sb.from('empleados').select('*').eq('id', u.id).maybeSingle()
+  if (emp) { currentUser = { type: 'emp', ...emp }; showEmpScreen(emp) }
+  else showScreen('login')
+}
+
+// ─── REGISTRO (primer ingreso) ───
+async function registrarEmpleado() {
+  const cuil  = soloNum(document.getElementById('reg-cuil').value)
+  const nac   = document.getElementById('reg-nac').value
+  const pass  = document.getElementById('reg-pass').value
+  const pass2 = document.getElementById('reg-pass2').value
+  document.getElementById('reg-err').style.display = 'none'
+
+  if (!cuil || cuil.length < 10) { showErr('reg-err', 'Ingresá tu CUIL completo (sin guiones).'); return }
+  if (!nac) { showErr('reg-err', 'Ingresá tu fecha de nacimiento.'); return }
+  if (pass.length < 4) { showErr('reg-err', 'La contraseña debe tener al menos 4 caracteres.'); return }
+  if (pass !== pass2) { showErr('reg-err', 'Las contraseñas no coinciden.'); return }
+
+  // Buscar empleado por CUIL
+  const cuilFormato = normCuil(cuil)
+  const { data: emp } = await sb.from('empleados').select('*').eq('cuil', cuilFormato).maybeSingle()
+  if (!emp) { showErr('reg-err', 'No se encontró un empleado con ese CUIL. Contactá a RRHH.'); return }
+
+  // Si ya tiene fecha de nacimiento registrada, verificar que coincida
+  if (emp.fecha_nacimiento) {
+    const nacEmp = emp.fecha_nacimiento.slice(0, 10)
+    if (nacEmp !== nac) { showErr('reg-err', 'La fecha de nacimiento no coincide con nuestros registros.'); return }
+  }
+  // Si no tiene fecha, la guardamos (primer ingreso real)
+
+  // Guardar contraseña y fecha de nacimiento
+  const { error } = await sb.from('empleados').update({
+    password: pass,
+    registrado: true,
+    password_temporal: false,
+    fecha_nacimiento: nac
+  }).eq('id', emp.id)
+  if (error) { showErr('reg-err', 'Error al guardar: ' + error.message); return }
+
+  toast('¡Contraseña creada! Ya podés ingresar con tu DNI.')
+  showScreen('login')
+}
+
+function logout() {
+  sessionStorage.removeItem('portal_sess')
+  currentUser = null
+  document.getElementById('inp-pass').value = ''
+  document.getElementById('login-err').style.display = 'none'
+  showScreen('login')
+}
+
+function showScreen(n) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
+  document.getElementById('screen-' + n).classList.add('active')
+}
+
+function showEmpScreen(emp) {
+  showScreen('emp')
+  document.getElementById('hdr-nombre').textContent = emp.nombre || emp.apellido_nombre || 'Empleado'
+  document.getElementById('emp-sub').textContent = 'DNI: ' + emp.dni + (emp.cuil ? ' · CUIL: ' + emp.cuil : '')
+  renderMisRecibos(emp)
+}
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
+  btn.classList.add('active')
+  ;['subir', 'excel', 'accesos', 'empleados'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === name ? 'block' : 'none'
+  })
+  if (name === 'accesos') renderAccesos()
+  if (name === 'empleados') renderEmpConfig()
+}
+
+// ─── EMPLEADOS ───
+async function getEmps() {
+  const { data } = await sb.from('empleados').select('*').order('nombre')
+  return data || []
+}
+
+async function renderEmpConfig() {
+  const el = document.getElementById('emp-config-list'); if (!el) return
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>'
+  const emps = await getEmps()
+  if (!emps.length) { el.innerHTML = '<p style="font-size:13px;color:var(--text2)">No hay empleados aún. Se crean automáticamente al subir el PDF.</p>'; return }
+  el.innerHTML = emps.map(e => `
+    <div class="emp-config-row" data-id="${e.id}">
+      <input value="${esc(e.dni)}" placeholder="DNI"/>
+      <input value="${esc(e.nombre)}" placeholder="Nombre completo"/>
+      <input value="${esc(e.cuil||'')}" placeholder="CUIL"/>
+      <input value="${esc(e.celular||'')}" placeholder="Celular"/>
+      <input value="${esc(e.password||'')}" placeholder="Contraseña"/>
+      <select><option value="true" ${e.activo?'selected':''}>Activo</option><option value="false" ${!e.activo?'selected':''}>Inactivo</option></select>
+      <button class="btn-dl" onclick="resetPass('${e.id}','${esc(e.nombre)}')">Reiniciar</button>
+    </div>`).join('')
+}
+
+async function saveEmps() {
+  const rows = [...document.querySelectorAll('#emp-config-list .emp-config-row')]
+  for (const row of rows) {
+    const ins = row.querySelectorAll('input'), sel = row.querySelector('select'), id = row.dataset.id
+    const payload = {
+      dni: soloNum(ins[0].value), nombre: ins[1].value.trim(),
+      cuil: normCuil(ins[2].value), celular: ins[3].value.trim() || null,
+      password: ins[4].value.trim(), activo: sel.value === 'true', rol: 'empleado'
+    }
+    if (!payload.dni || !payload.nombre || !payload.password) continue
+    const res = id ? await sb.from('empleados').update(payload).eq('id', id)
+                   : await sb.from('empleados').insert(payload)
+    if (res.error) { toast('Error: ' + res.error.message); return }
+  }
+  toast('Empleados guardados'); renderEmpConfig()
+}
+
+function addEmpRow() {
+  const d = document.createElement('div'); d.className = 'emp-config-row'; d.dataset.id = ''
+  d.innerHTML = `<input placeholder="DNI"/><input placeholder="Nombre completo"/><input placeholder="CUIL"/><input placeholder="Celular"/><input placeholder="Contraseña"/><select><option value="true">Activo</option><option value="false">Inactivo</option></select><span></span>`
+  document.getElementById('emp-config-list').appendChild(d)
+}
+
+async function resetPass(id, nombre) {
+  const pass = 'Sol-' + Math.floor(1000 + Math.random() * 9000)
+  if (!confirm('Reiniciar contraseña de ' + nombre + ' a "' + pass + '"?')) return
+  const { error } = await sb.from('empleados').update({ password: pass, password_temporal: true, registrado: false }).eq('id', id)
+  if (error) { toast('Error: ' + error.message); return }
+  toast('Contraseña temporal: ' + pass); renderEmpConfig()
+}
+
+// ─── EMPLEADO: mis recibos ───
+async function renderMisRecibos(emp) {
+  const el = document.getElementById('recibos-list')
+  const { data: recibos, error } = await sb.from('recibos').select('*').eq('empleado_id', emp.id).eq('publicado', true).order('anio', { ascending: false }).order('mes', { ascending: false })
+  if (error) { el.innerHTML = `<div class="empty"><p class="empty-title">Error al cargar</p><p>${esc(error.message)}</p></div>`; return }
+  if (!recibos || !recibos.length) {
+    el.innerHTML = `<div class="empty"><p class="empty-title">No hay recibos disponibles</p><p class="empty-sub">Cuando RRHH suba tus recibos aparecerán acá.</p></div>`; return
+  }
+  el.innerHTML = recibos.map(r => `
+    <div class="recibo-item">
+      <div class="recibo-left">
+        <div class="pdf-icon">PDF</div>
+        <div><p class="recibo-titulo">Recibo — ${esc(r.periodo)}</p><p class="recibo-meta">Disponible para ver y descargar</p></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-dl" onclick="verRecibo('${r.id}')">👁 Ver</button>
+        <button class="btn-dl" onclick="descargarRecibo('${r.id}')">⬇ Descargar</button>
+      </div>
+    </div>`).join('')
+}
+
+async function obtenerReciboAutorizado(id) {
+  const { data: r, error } = await sb.from('recibos').select('*').eq('id', id).maybeSingle()
+  if (error || !r) { toast('No se encontró el recibo'); return null }
+  if (currentUser?.type === 'emp' && currentUser.id !== r.empleado_id) { toast('No autorizado'); return null }
+  return r
+}
+
+async function verRecibo(id) {
+  const r = await obtenerReciboAutorizado(id); if (!r) return
+  const { data: urlData, error } = await sb.storage.from('recibos').createSignedUrl(r.archivo_path, 120)
+  if (error) { toast('Error: ' + error.message); return }
+  if (currentUser?.id) {
+    await registrarAcceso(currentUser.id, 'vista', r.periodo, null)
+    await sb.from('recibos').update({ visto: true, fecha_visto: new Date().toISOString() }).eq('id', id)
+  }
+  window.open(urlData.signedUrl, '_blank')
+}
+
+async function descargarRecibo(id) {
+  const r = await obtenerReciboAutorizado(id); if (!r) return
+  const { data: urlData, error } = await sb.storage.from('recibos').createSignedUrl(r.archivo_path, 120)
+  if (error) { toast('Error: ' + error.message); return }
+  if (currentUser?.id) {
+    await registrarAcceso(currentUser.id, 'descarga', r.periodo, null)
+    await sb.from('recibos').update({ descargado: true, fecha_descarga: new Date().toISOString() }).eq('id', id)
+  }
+  const a = document.createElement('a'); a.href = urlData.signedUrl; a.download = `Recibo_${r.periodo}.pdf`; a.click()
+}
+
+// ─── ACCESOS (RRHH) ───
+async function registrarAcceso(empleado_id, accion, periodo, detalle) {
+  try { await sb.from('auditoria').insert({ empleado_id, accion, periodo: periodo || null, detalle: detalle || null }) } catch(e) {}
+}
+
+async function renderAccesos() {
+  const emps = await getEmps()
+  const { data: recibos } = await sb.from('recibos').select('*').eq('publicado', true).order('creado_en', { ascending: false })
+  const allRec = recibos || []
+  const vistos = allRec.filter(r => r.visto).length
+  const desc   = allRec.filter(r => r.descargado).length
+  const reg    = emps.filter(e => e.registrado).length
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Empleados</div><div class="stat-value">${emps.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Registrados</div><div class="stat-value">${reg}</div></div>
+    <div class="stat-card"><div class="stat-label">Recibos</div><div class="stat-value">${allRec.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Vistos</div><div class="stat-value">${vistos}</div></div>
+    <div class="stat-card"><div class="stat-label">Descargados</div><div class="stat-value">${desc}</div></div>`
+
+  const rows = []
+  for (const e of emps) {
+    const recs = allRec.filter(r => r.empleado_id === e.id)
+    if (!recs.length) {
+      rows.push(`<tr><td><strong>${esc(e.nombre)}</strong><br><span class="mono">${esc(e.dni)}</span></td><td>${e.registrado ? '<span class="badge bg-green">Registrado</span>' : '<span class="badge bg-gray">Sin registrar</span>'}</td><td colspan="4" style="color:var(--text3)">Sin recibos</td></tr>`)
+      continue
+    }
+    for (const r of recs) {
+      let estado = '<span class="badge bg-gray">Pendiente</span>'
+      if (r.descargado) estado = '<span class="badge bg-green">Descargado</span>'
+      else if (r.visto) estado = '<span class="badge bg-amber">Visto</span>'
+      rows.push(`<tr>
+        <td><strong>${esc(e.nombre)}</strong><br><span class="mono">${esc(e.dni)}</span></td>
+        <td>${e.registrado ? '<span class="badge bg-green">Registrado</span>' : '<span class="badge bg-gray">Sin registrar</span>'}</td>
+        <td>${estado}</td>
+        <td>${esc(r.periodo)}</td>
+        <td><span class="mono" style="font-size:11px">${r.fecha_visto ? fmtTs(r.fecha_visto) : '—'}</span></td>
+        <td><span class="mono" style="font-size:11px">${r.fecha_descarga ? fmtTs(r.fecha_descarga) : '—'}</span></td>
+      </tr>`)
+    }
+  }
+  document.getElementById('accesos-content').innerHTML = `
+    <table class="accesos-table">
+      <thead><tr><th>Empleado</th><th>Registro</th><th>Estado</th><th>Período</th><th>Última vista</th><th>Última descarga</th></tr></thead>
+      <tbody>${rows.join('')}</tbody>
+    </table>`
+}
+
+// ─── IMPORTAR EXCEL ───
+function onDV2(e) { e.preventDefault(); document.getElementById('excel-zone').classList.add('dv') }
+function onDL2()  { document.getElementById('excel-zone').classList.remove('dv') }
+function onDrop2(e) { e.preventDefault(); onDL2(); if (e.dataTransfer.files[0]) importarExcel(e.dataTransfer.files[0]) }
+function onExcelSelect(e) { if (e.target.files[0]) importarExcel(e.target.files[0]) }
+
+async function importarExcel(file) {
+  document.getElementById('excel-fn').textContent = file.name
+  document.getElementById('excel-result').style.display = 'none'
+  setExcelProg(true, 'Leyendo archivo...', 10)
+
+  // Cargar SheetJS dinámicamente si no está disponible
+  if (!window.XLSX) {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script')
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
+      s.onload = res; s.onerror = rej
+      document.head.appendChild(s)
+    })
+  }
+
+  const buf = await file.arrayBuffer()
+  const wb = XLSX.read(buf, { type: 'array' })
+  const ws = wb.Sheets[wb.SheetNames[0]]
+  const rows = XLSX.utils.sheet_to_json(ws, { defval: '' })
+
+  if (!rows.length) { setExcelProg(false); toast('El archivo está vacío'); return }
+
+  // Detectar columnas flexiblemente (insensible a mayúsculas/espacios/tildes)
+  const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()
+  const headers = Object.keys(rows[0])
+  const findCol = (...candidates) => headers.find(h => candidates.some(c => norm(h).includes(norm(c)))) || null
+
+  const colNombre  = findCol('nombre', 'name', 'apellido')
+  const colCuil    = findCol('cuil', 'cuit')
+  const colLegajo  = findCol('legajo', 'leg', 'nro', 'numero')
+
+  if (!colCuil)   { setExcelProg(false); toast('No se encontró columna CUIL en el Excel'); return }
+  if (!colNombre) { setExcelProg(false); toast('No se encontró columna Nombre en el Excel'); return }
+
+  setExcelProg(true, 'Importando empleados...', 30)
+
+  const resultados = []
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i]
+    const cuil = normCuil(String(row[colCuil] || ''))
+    const dni  = soloNum(cuil).slice(2, -1)
+    if (!dni || dni.length < 7) { resultados.push({ ok: false, fila: i+2, msg: 'CUIL inválido', raw: JSON.stringify(row) }); continue }
+
+    const nombreCompleto = titleCase(String(row[colNombre] || '').trim())
+    if (!nombreCompleto || nombreCompleto.length < 2) { resultados.push({ ok: false, fila: i+2, msg: 'Nombre vacío', raw: JSON.stringify(row) }); continue }
+
+    const legajo = colLegajo ? String(row[colLegajo] || '').trim() : null
+
+    // Buscar empleado existente por CUIL o DNI
+    let { data: emp } = await sb.from('empleados').select('*').eq('cuil', cuil).maybeSingle()
+    if (!emp) { const r = await sb.from('empleados').select('*').eq('dni', dni).maybeSingle(); emp = r.data }
+
+    if (emp) {
+      const { error } = await sb.from('empleados').update({ nombre: nombreCompleto, apellido_nombre: nombreCompleto, cuil, dni, legajo: legajo || emp.legajo || null }).eq('id', emp.id)
+      resultados.push({ ok: !error, fila: i+2, nombre: nombreCompleto, dni, nuevo: false, msg: error?.message })
+    } else {
+      const pass = 'Sol-' + Math.floor(1000 + Math.random() * 9000)
+      const { error } = await sb.from('empleados').insert({ dni, cuil, nombre: nombreCompleto, apellido_nombre: nombreCompleto, legajo: legajo || null, activo: true, rol: 'empleado', registrado: false, password: pass, password_temporal: true })
+      resultados.push({ ok: !error, fila: i+2, nombre: nombreCompleto, dni, nuevo: true, msg: error?.message })
+    }
+
+    setExcelProg(true, `Importando ${i+1} de ${rows.length}...`, 30 + Math.round((i+1)/rows.length * 65))
+  }
+
+  setExcelProg(true, '¡Listo!', 100)
+  renderExcelResultado(resultados)
+  setTimeout(() => setExcelProg(false), 900)
+}
+
+function setExcelProg(show, lbl, pct) {
+  document.getElementById('excel-prog-wrap').style.display = show ? 'block' : 'none'
+  if (show) {
+    document.getElementById('excel-prog-txt').textContent = lbl
+    document.getElementById('excel-prog-pct').textContent = pct + '%'
+    document.getElementById('excel-prog-fill').style.width = pct + '%'
+  }
+}
+
+function renderExcelResultado(list) {
+  const ok = list.filter(r => r.ok).length
+  document.getElementById('excel-result').style.display = 'block'
+  document.getElementById('excel-result-list').innerHTML =
+    `<p style="font-size:14px;margin-bottom:1rem;font-weight:500">${ok} de ${list.length} empleados importados correctamente.</p>` +
+    list.map(r => r.ok
+      ? `<div class="result-row">
+          <div class="avatar">${initials(r.nombre)}</div>
+          <div class="result-info"><div class="result-name">${esc(r.nombre)}</div><div class="result-meta">DNI ${esc(r.dni)}</div></div>
+          <span class="badge ${r.nuevo ? 'bg-amber' : 'bg-green'}">${r.nuevo ? '★ Nuevo' : '✓ Actualizado'}</span>
+        </div>`
+      : `<div class="result-row">
+          <div class="avatar" style="background:var(--red-bg);color:var(--red)">!</div>
+          <div class="result-info"><div class="result-name">Fila ${r.fila}: ${esc(r.msg)}</div><div class="result-meta">${esc(r.raw||'')}</div></div>
+          <span class="badge bg-red">Error</span>
+        </div>`
+    ).join('')
+}
+
+
+function onDV(e) { e.preventDefault(); document.getElementById('upload-zone').classList.add('dv') }
+function onDL()  { document.getElementById('upload-zone').classList.remove('dv') }
+function onDrop(e) { e.preventDefault(); onDL(); if (e.dataTransfer.files[0]) procesarPDF(e.dataTransfer.files[0]) }
+function onFileSelect(e) { if (e.target.files[0]) procesarPDF(e.target.files[0]) }
+
+async function procesarPDF(file) {
+  if (file.type !== 'application/pdf') { toast('Solo PDFs'); return }
+  document.getElementById('upload-fn').textContent = file.name
+  document.getElementById('card-result').style.display = 'none'
+  setProg(true, 'Cargando PDF...', 2)
+
+  const buf = await file.arrayBuffer()
+  try {
+    const pdfjs = await pdfjsLib.getDocument({ data: buf.slice(0) }).promise
+    const { PDFDocument } = PDFLib
+    const src = await PDFDocument.load(buf.slice(0))
+    const total = src.getPageCount()
+    const resultados = []
+
+    for (let i = 0; i < total; i++) {
+      const pct = Math.round(5 + ((i + 1) / total) * 90)
+      setProg(true, `Procesando página ${i + 1} de ${total}...`, pct)
+
+      // Renderizar página para OCR
+      const page = await pdfjs.getPage(i + 1)
+      const viewport = page.getViewport({ scale: 2 })
+      const canvas = document.createElement('canvas')
+      canvas.width = viewport.width; canvas.height = viewport.height
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise
+
+      // Recortar mitad izquierda (50% del ancho)
+      const cropCanvas = document.createElement('canvas')
+      cropCanvas.width = Math.floor(canvas.width * 0.5)
+      cropCanvas.height = canvas.height
+      cropCanvas.getContext('2d').drawImage(canvas, 0, 0, cropCanvas.width, cropCanvas.height, 0, 0, cropCanvas.width, cropCanvas.height)
+
+      // OCR sobre la mitad izquierda
+      let text = ''
+      try {
+        const ocr = await Tesseract.recognize(cropCanvas, 'spa+eng', { logger: () => {} })
+        text = ocr.data.text || ''
+      } catch (ocrErr) { console.warn('OCR error pág ' + (i+1), ocrErr) }
+
+      const datos = parseReciboText(text)
+      console.log('─── Página', i + 1, '───')
+      console.log('OCR raw:', JSON.stringify(text.slice(0, 400)))
+      console.log('Resultado:', datos)
+
+      if (!datos.cuil && !datos.dni && !datos.nombre) {
+        resultados.push({ ok: false, pagina: i + 1, msg: 'No se pudo leer CUIL/DNI/Nombre', raw: text.slice(0, 200) })
+        continue
+      }
+
+      if (!datos.periodo) datos.periodo = periodoActual()
+      const [mes, anio] = datos.periodo.split('/').map(Number)
+      const periodoLabel = mesNombre(mes, anio)
+
+      // Crear PDF con la mitad izquierda — mediabox + cropbox (método correcto)
+      const doc = await PDFDocument.create()
+      const [copied] = await doc.copyPages(src, [i])
+      const w = copied.getWidth(), h = copied.getHeight()
+      const mitad = w / 2
+
+      // Ajustar mediabox y cropbox a la mitad izquierda
+      copied.setMediaBox(0, 0, mitad, h)
+      copied.setCropBox(0, 0, mitad, h)
+      doc.addPage(copied)
+      const bytes = await doc.save()
+
+      // Buscar empleado existente — NO crear si no existe
+      const emp = await buscarEmpleado(datos)
+      if (!emp) { resultados.push({ ok: false, pagina: i + 1, msg: `Empleado no encontrado (CUIL: ${datos.cuil} / DNI: ${datos.dni}). Importalo primero desde Excel.` }); continue }
+
+      // Subir PDF a Supabase Storage
+      const path = `${anio}/${String(mes).padStart(2, '0')}/${datos.dni || datos.cuil}.pdf`
+      const { error: upErr } = await sb.storage.from('recibos').upload(path, new Blob([bytes], { type: 'application/pdf' }), { upsert: true, contentType: 'application/pdf' })
+      if (upErr) { resultados.push({ ok: false, pagina: i + 1, msg: 'Storage: ' + upErr.message }); continue }
+
+      // Guardar recibo en base de datos
+      const rec = { empleado_id: emp.id, cuil: datos.cuil, periodo: periodoLabel, mes, anio, archivo_path: path, publicado: true, visto: false, descargado: false, fecha_visto: null, fecha_descarga: null }
+      const { data: old } = await sb.from('recibos').select('id').eq('empleado_id', emp.id).eq('mes', mes).eq('anio', anio).maybeSingle()
+      const res = old ? await sb.from('recibos').update(rec).eq('id', old.id)
+                      : await sb.from('recibos').insert(rec)
+      if (res.error) { resultados.push({ ok: false, pagina: i + 1, msg: 'DB: ' + res.error.message }); continue }
+
+      resultados.push({ ok: true, pagina: i + 1, nombre: emp.nombre, dni: emp.dni, cuil: emp.cuil, periodo: periodoLabel, empleadoNuevo: emp._nuevo })
+    }
+
+    setProg(true, '¡Listo!', 100)
+    renderResultado(resultados)
+    setTimeout(() => setProg(false), 900)
+
+  } catch (e) { setProg(false); toast('Error: ' + e.message); console.error(e) }
+}
+
+async function buscarEmpleado(d) {
+  let { data: emp } = await sb.from('empleados').select('*').eq('cuil', d.cuil).maybeSingle()
+  if (!emp && d.dni) {
+    const r = await sb.from('empleados').select('*').eq('dni', d.dni).maybeSingle()
+    emp = r.data
+  }
+  return emp || null
+}
+
+async function upsertEmpleado(d) {
+  // Si ya existe el empleado, preservar su nombre (puede venir del Excel importado)
+  let { data: emp } = await sb.from('empleados').select('*').eq('cuil', d.cuil).maybeSingle()
+  if (!emp && d.dni) {
+    const r = await sb.from('empleados').select('*').eq('dni', d.dni).maybeSingle()
+    emp = r.data
+  }
+
+  // El nombre del Excel tiene prioridad; el OCR solo se usa si no hay nombre previo
+  const nombreFinal = (emp?.nombre && emp.nombre !== 'Nombre completo') ? emp.nombre : (d.nombre || '')
+
+  const payload = {
+    dni: d.dni,
+    nombre: nombreFinal,
+    apellido_nombre: nombreFinal,
+    cuil: d.cuil,
+    legajo: d.legajo || emp?.legajo || null,
+    sector: d.sector || emp?.sector || null,
+    estado: 'activo',
+    activo: true,
+    rol: 'empleado'
+  }
+
+  if (emp) {
+    await sb.from('empleados').update(payload).eq('id', emp.id)
+    return { ...emp, ...payload, _nuevo: false }
+  }
+
+  const pass = 'Sol-' + Math.floor(1000 + Math.random() * 9000)
+  const { data: newEmp, error } = await sb.from('empleados').insert({ ...payload, password: pass, registrado: false, password_temporal: true }).select('*').single()
+  if (error) { console.error(error); return null }
+  return { ...newEmp, _nuevo: true }
+}
+
+function parseReciboText(t) {
+  // Formato OCR real observado en los recibos Sol Victoria:
+  // "02023 |eregorutti, Agustin — |20-33841864-8|22/02/2020 |HOUSEKEEPING"
+  // "02164 |Rios, Rodrigo Fabian |20-38260094-1|07/03/2020 |RESTAURANTE"
+  // "02170 |Fagundez, Mariana 27-28591051-5|07/03/2020 |HOUSEKEEPING"
+  // Problemas: el | antes del apellido "consume" la primera letra (B→|ere, etc.)
+
+  const clean = t.replace(/\s+/g, ' ').trim()
+
+  let cuil = '', dni = '', nombre = '', legajo = '', sector = '', periodo = ''
+
+  // 1. CUIL del empleado (prefijo 20-27, NO 30-empresa)
+  const cuilM = clean.match(/\b(2[0-7])-([\d]{7,8})-(\d)\b/)
+  if (cuilM) { cuil = `${cuilM[1]}-${cuilM[2]}-${cuilM[3]}`; dni = cuilM[2] }
+
+  // 2. PERÍODO
+  const pm = clean.match(/Mensual\s+(\d{1,2})\/(20\d{2})/i)
+  if (pm) periodo = String(pm[1]).padStart(2,'0') + '/' + pm[2]
+
+  const STOP = /TURISMO|HOTELERO|GASTRONOMICO|SOL DE|SOL VIC|REMUNER|DEPOSITO|BANCO|APELLIDO|NOMBRES|ULTIMO|LUGAR|PESOS|RECIBO|PERIODO/i
+
+  // Función para limpiar y validar el nombre extraído
+  function limpiarNombre(raw) {
+    const r = raw.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ,\s]/g, ' ').replace(/\s+/g, ' ').trim()
+    if (STOP.test(r) || r.length < 3) return ''
+    return titleCase(r)
+  }
+
+  // 3a. PATRÓN PRINCIPAL — formato exacto del recibo:
+  // "LEGAJO |?APELLIDO, Nombre [—] |CUIL"
+  // El | antes del apellido puede comerse la primera letra → capturamos desde cualquier letra
+  // Usamos greedy hasta encontrar el separador antes del CUIL (— o |)
+  if (cuil) {
+    // Buscar: legajo, luego texto hasta el CUIL (con o sin separadores intermedios)
+    const cuilEsc = cuil.replace(/[-]/g, '[\\-]')
+    const re = new RegExp(`\\b(\\d{4,5})\\s+[|]?\\s*([A-Za-záéíóúüñÁÉÍÓÚÜÑ][^|\\n]{3,50}?)\\s*(?:[—\\-]+\\s*)?[|]?\\s*${cuilEsc}`)
+    const m = clean.match(re)
+    if (m) {
+      legajo = m[1]
+      nombre = limpiarNombre(m[2])
+    }
+  }
+
+  // 3b. Fallback: misma búsqueda pero sin CUIL conocido (usa el DNI)
+  if (!nombre && dni) {
+    const re = new RegExp(`\\b(\\d{4,5})\\s+[|]?\\s*([A-Za-záéíóúüñÁÉÍÓÚÜÑ][^|\\n]{3,50}?)\\s*(?:[—\\-]+\\s*)?[|]?\\s*2[0-7][\\-]?${dni}`)
+    const m = clean.match(re)
+    if (m) {
+      legajo = legajo || m[1]
+      nombre = limpiarNombre(m[2])
+    }
+  }
+
+  // 3c. Fallback: "Apellido, Nombre" entre cualquier par de separadores (|, —)
+  if (!nombre) {
+    const segs = clean.split(/[|—]/)
+    for (const seg of segs) {
+      const s = seg.trim()
+      if (s.includes(',') && s.length > 4 && s.length < 55 && !STOP.test(s) && /[A-Za-záéíóúüñ]{3}/.test(s)) {
+        nombre = limpiarNombre(s)
+        if (nombre) break
+      }
+    }
+  }
+
+  // 3d. Último recurso: "Apellido, Nombre" con mayúscula inicial en cualquier parte
+  if (!nombre) {
+    const m = clean.match(/\b([A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]{2,25}),\s*([A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]{2,15}(?:\s+[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]{2,15})?)/)
+    if (m && !STOP.test(m[0])) nombre = titleCase(m[0])
+  }
+
+  // 4. SECTOR — texto después de la fecha de ingreso
+  const sm = clean.match(/\d{2}\/\d{2}\/\d{4}\s*[|]\s*([A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s]{3,25}?)\s*[|\n]/)
+  if (sm) sector = sm[1].trim().toUpperCase()
+
+  return { cuil, dni, legajo, nombre, sector, periodo }
+}
+
+function renderResultado(list) {
+  document.getElementById('card-result').style.display = 'block'
+  const ok = list.filter(r => r.ok).length
+  document.getElementById('result-list').innerHTML = `
+    <p style="font-size:14px;margin-bottom:1rem;font-weight:500">${ok} de ${list.length} recibos procesados correctamente.</p>` +
+  list.map(r => r.ok
+    ? `<div class="result-row">
+        <div class="avatar">${initials(r.nombre)}</div>
+        <div class="result-info"><div class="result-name">${esc(r.nombre)}</div><div class="result-meta">DNI ${esc(r.dni)} · CUIL ${esc(r.cuil)} · ${esc(r.periodo)}</div></div>
+        <span class="badge ${r.empleadoNuevo ? 'bg-amber' : 'bg-green'}">${r.empleadoNuevo ? '★ Empleado nuevo' : '✓ Actualizado'}</span>
+      </div>`
+    : `<div class="result-row">
+        <div class="avatar" style="background:var(--red-bg);color:var(--red)">!</div>
+        <div class="result-info"><div class="result-name">Página ${r.pagina}: ${esc(r.msg)}</div><div class="result-meta">${esc(r.raw || '')}</div></div>
+        <span class="badge bg-red">Revisar</span>
+      </div>`
+  ).join('')
+}
+
+// ─── UTILS ───
+function setProg(show, lbl, pct) {
+  document.getElementById('prog-wrap').style.display = show ? 'block' : 'none'
+  if (show) { document.getElementById('prog-txt').textContent = lbl; document.getElementById('prog-pct').textContent = pct + '%'; document.getElementById('prog-fill').style.width = pct + '%' }
+}
+function normCuil(v) { let n = soloNum(v); if (n.length === 11) return n.slice(0, 2) + '-' + n.slice(2, 10) + '-' + n.slice(10); return String(v || '').trim() }
+function soloNum(v) { return String(v || '').replace(/\D/g, '') }
+function periodoActual() { const d = new Date(); return String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear() }
+function mesNombre(m, a) { return new Date(a, m - 1, 2).toLocaleString('es-AR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase()) }
+function titleCase(s) { return String(s || '').toLowerCase().replace(/(^|[\s,])([a-záéíóúüñ])/g, (m, p, c) => p + c.toUpperCase()).replace(/\s+/g, ' ').trim() }
+function initials(n) { return String(n || '').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() }
+function fmtTs(iso) { const d = new Date(iso); return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) }
+function showErr(id, msg) { const el = document.getElementById(id); el.textContent = msg; el.style.display = 'block' }
+let toastT
+function toast(msg) { const el = document.getElementById('notif'); el.textContent = msg; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 4500) }
+function esc(v) { return String(v ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])) }
+</script>
+</body>
+</html>
